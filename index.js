@@ -1,77 +1,97 @@
 const app = new PIXI.Application({ backgroundColor: 0x1099bb });
 document.body.appendChild(app.view);
 
-// create a new Sprite from an image path
-const bunny = PIXI.Sprite.from('bunny.png');
 
-// center the sprite's anchor point
-bunny.anchor.set(0.5);
+let json = {
+    "trees": {
+        "A": {
+            "position": {"x": 9, "y": 9},
+            "steps": [
+                {"timestamp": 0, "health": 50},
+            ]
+        },
+        "B": {
+            "position": {"x": 1, "y": 1},
+            "steps": [
+                {"timestamp": 410, "health": 0},
+                {"timestamp": 380, "health": 8},
+                {"timestamp": 360, "health": 15},
+                {"timestamp": 330, "health": 25},
+                {"timestamp": 300, "health": 32},
+                {"timestamp": 280, "health": 40},
+                {"timestamp": 200, "health": 50},
+                {"timestamp": 0,   "health": 50}
+            ]
+        }
+    },
+    "players": {
+        "player1": {
+            "team": "A",
+            "character": {
+                "sprites": {
+                    "default": "bunny.png"
+                }
+            },
+            "steps": [
+                {"timestamp": 410, "position": {"x": 4, "y": 1}},
+                {"timestamp": 360, "position": {"x": 4, "y": 6}},
+                {"timestamp": 310, "position": {"x": 4, "y": 6}},
+                {"timestamp": 280, "position": {"x": 4, "y": 9}},
+                {"timestamp": 270, "position": {"x": 3, "y": 9}},
+                {"timestamp": 190, "position": {"x": 3, "y": 1}},
+                {"timestamp": 180, "position": {"x": 2, "y": 1}},
+                {"timestamp": 100, "position": {"x": 2, "y": 9}},
+                {"timestamp": 90,  "position": {"x": 1, "y": 9}},
+                {"timestamp": 0,   "position": {"x": 1, "y": 0}}
+            ]
+        },
+        "player2": {
+            "team": "B",
+            "character": {
+                "sprites": {
+                    "default": "bunny.png"
+                }
+            },
+            "steps": [
+                {"timestamp": 410, "position": {"x": 5, "y": 8}},
+                {"timestamp": 360, "position": {"x": 5, "y": 3}},
+                {"timestamp": 310, "position": {"x": 5, "y": 3}},
+                {"timestamp": 280, "position": {"x": 5, "y": 1}},
+                {"timestamp": 270, "position": {"x": 6, "y": 1}},
+                {"timestamp": 190, "position": {"x": 6, "y": 8}},
+                {"timestamp": 180, "position": {"x": 7, "y": 8}},
+                {"timestamp": 100, "position": {"x": 7, "y": 1}},
+                {"timestamp": 90,  "position": {"x": 8, "y": 1}},
+                {"timestamp": 0,   "position": {"x": 8, "y": 9}}
+            ]
+        }
+    }
+}
+
+function createPlayers(jsonPlayers){
+    let fighters = {};
+    Object.keys(jsonPlayers).map((fighterId) => {
+        let jsonPlayer = jsonPlayers[fighterId];
+        let fighter = PIXI.Sprite.from(jsonPlayer.character.sprites["default"]);
+        // center the sprite's anchor point
+        fighter.anchor.set(0.5);
+        fighter.visible = false;
+        fighters[fighterId] = fighter;
+        app.stage.addChild(fighter);
+    });
+    return fighters;
+}
+// create a new Sprite from an image path
+let players = createPlayers(json.players);
 
 const WIDTH_SEGMENT_SIZE = app.screen.width / 10;
 const HEIGHT_SEGMENT_SIZE = app.screen.height / 10;
-const SLOWING_FACTOR = 10;
+const SLOWING_FACTOR = 8;
 
-app.stage.addChild(bunny);
-
-class Position {
-    constructor(y, x){
-        this.y = y
-        this.x = x
-    }
-}
-
-class Step {
-    constructor(timestamp, position){
-        this.timestamp = timestamp
-        this.position = position
-    }
-}
-
-let story = [
-    new Step(1, new Position(1, 1)),
-    new Step(2, new Position(1, 2)),
-    new Step(3, new Position(1, 3)),
-    new Step(4, new Position(1, 4)),
-    new Step(5, new Position(1, 5)),
-    new Step(6, new Position(1, 6)),
-    new Step(7, new Position(1, 7)),
-    new Step(8, new Position(1, 8)),
-    new Step(9, new Position(1, 9)),
-    new Step(10, new Position(2, 9)),
-    new Step(11, new Position(2, 8)),
-    new Step(12, new Position(2, 7)),
-    new Step(13, new Position(2, 6)),
-    new Step(14, new Position(2, 5)),
-    new Step(15, new Position(2, 4)),
-    new Step(16, new Position(2, 3)),
-    new Step(17, new Position(2, 2)),
-    new Step(18, new Position(2, 1)),
-
-    new Step(19, new Position(3, 1)),
-    new Step(20, new Position(3, 2)),
-    new Step(21, new Position(3, 3)),
-    new Step(22, new Position(3, 4)),
-    new Step(23, new Position(3, 5)),
-    new Step(24, new Position(3, 6)),
-    new Step(25, new Position(3, 7)),
-    new Step(26, new Position(3, 8)),
-    new Step(27, new Position(3, 9)),
-    new Step(28, new Position(4, 9)),
-    new Step(29, new Position(4, 8)),
-    new Step(30, new Position(4, 7)),
-    new Step(31, new Position(4, 6)),
-    new Step(32, new Position(4, 5)),
-    new Step(33, new Position(4, 4)),
-    new Step(34, new Position(4, 3)),
-    new Step(35, new Position(4, 2)),
-    new Step(36, new Position(4, 1)),
-]
-story.reverse()
-
-function executeStep(step){
+function executeStep(player, step){
     let position = step.position;
-    bunny.x = position.x * WIDTH_SEGMENT_SIZE;
-    bunny.y = position.y * HEIGHT_SEGMENT_SIZE;
+    player.x = position.x * WIDTH_SEGMENT_SIZE;
+    player.y = position.y * HEIGHT_SEGMENT_SIZE;
 }
 
 function applyPartialDistance(xOrY, segmentSize, estimatedDelta, fighter, targetStep, actualTs){
@@ -87,38 +107,45 @@ function applyPartialDistance(xOrY, segmentSize, estimatedDelta, fighter, target
     return false;
 }
 
-function render() {
-    let actualTs = 0;
-    let storyTs = 0;
-
-    // Listen for animate update
-    app.ticker.add((delta) => {
-        actualTs += delta;
-        if (story.length > 0){
+function renderPlayers(players, playerStories, actualTs, delta){
+    Object.keys(playerStories).forEach((fighterId) => {
+        let player = players[fighterId];
+        let steps = playerStories[fighterId].steps;
+        if (steps.length > 0){
             let isStepExecuted = false;
-            let peek = story[story.length - 1];
-            while(story.length > 0 && peek.timestamp * SLOWING_FACTOR < actualTs) {
-                story.pop();
-                storyTs = peek.timestamp;
-                executeStep(peek);
+            let peek = steps[steps.length - 1];
+            while(steps.length > 0 && peek.timestamp * SLOWING_FACTOR < actualTs) {
+                if (player.visible == false){
+                    player.visible = true;
+                }
+                steps.pop();
+                executeStep(player, peek);
                 // rotate when moving
-                bunny.rotation += 0.1 * delta;
+                player.rotation += 0.1 * delta;
                 isStepExecuted = true;
-                if (story.length > 0){
-                    peek = story[story.length - 1];
+                if (steps.length > 0){
+                    peek = steps[steps.length - 1];
                 }
             }
             // execute partial step
-            if (!isStepExecuted){
+            if (!isStepExecuted && player.visible){
                 let moved = false;
-                moved = applyPartialDistance("x", WIDTH_SEGMENT_SIZE, delta, bunny, peek, actualTs) || moved;
-                moved = applyPartialDistance("y", HEIGHT_SEGMENT_SIZE, delta, bunny, peek, actualTs) || moved;
+                moved = applyPartialDistance("x", WIDTH_SEGMENT_SIZE, delta, player, peek, actualTs) || moved;
+                moved = applyPartialDistance("y", HEIGHT_SEGMENT_SIZE, delta, player, peek, actualTs) || moved;
                 if (moved){
                     // rotate when moving, this can be replaced by walking animation
-                    bunny.rotation += 0.1 * delta;
+                    player.rotation += 0.1 * delta;
                 }
             }
         }
+    })
+}
+
+function render() {
+    let actualTs = 0;
+    app.ticker.add((delta) => {
+        actualTs += delta;
+        renderPlayers(players, json.players, actualTs, delta);
     });
 }
 
