@@ -1,6 +1,10 @@
 const app = new PIXI.Application({ backgroundColor: 0x1099bb });
-document.body.appendChild(app.view);
+const WIDTH_SEGMENT_SIZE = app.screen.width / 10;
+const HEIGHT_SEGMENT_SIZE = app.screen.height / 10;
+const SLOWING_FACTOR = 8;
+const TIMER_FONT_SIZE = 30;
 
+document.body.appendChild(app.view);
 
 let json = {
     "trees": {
@@ -68,9 +72,21 @@ let json = {
     }
 }
 
+function font(size){
+    return {fontFamily : 'Arial', fontSize: size, fill : 'white', align : 'center'};
+}
+
+function createTimer(){
+    let text = new PIXI.Text('00:00', font(TIMER_FONT_SIZE));
+    text.x = (app.screen.width / 2) - (text.width / 2);
+    text.y = 10;
+    app.stage.addChild(text);
+    return text;
+}
+
 function createPlayers(jsonPlayers){
     let fighters = {};
-    Object.keys(jsonPlayers).map((fighterId) => {
+    Object.keys(jsonPlayers).forEach((fighterId) => {
         let jsonPlayer = jsonPlayers[fighterId];
         let fighter = PIXI.Sprite.from(jsonPlayer.character.sprites["default"]);
         // center the sprite's anchor point
@@ -81,12 +97,6 @@ function createPlayers(jsonPlayers){
     });
     return fighters;
 }
-// create a new Sprite from an image path
-let players = createPlayers(json.players);
-
-const WIDTH_SEGMENT_SIZE = app.screen.width / 10;
-const HEIGHT_SEGMENT_SIZE = app.screen.height / 10;
-const SLOWING_FACTOR = 8;
 
 function executeStep(player, step){
     let position = step.position;
@@ -141,11 +151,22 @@ function renderPlayers(players, playerStories, actualTs, delta){
     })
 }
 
+function renderTimer(timer, actualTs){
+    let actualTsSeconds = Math.floor(actualTs / 100);
+    let minutes = Math.floor(actualTsSeconds / 60);
+    let seconds = Math.floor(actualTsSeconds % 60);
+    timer.text = minutes.toString().padStart(2, "0") + ":" + seconds.toString().padStart(2, "0");
+}
+
 function render() {
     let actualTs = 0;
+    let timer = createTimer();
+    // create a new Sprite from an image path
+    let players = createPlayers(json.players);
     app.ticker.add((delta) => {
         actualTs += delta;
         renderPlayers(players, json.players, actualTs, delta);
+        renderTimer(timer, actualTs);
     });
 }
 
