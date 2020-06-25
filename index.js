@@ -3,8 +3,7 @@ const WIDTH_SEGMENT_SIZE = app.screen.width / 10;
 const HEIGHT_SEGMENT_SIZE = app.screen.height / 10;
 const SLOWING_FACTOR = 8;
 const TIMER_FONT_SIZE = 30;
-
-document.body.appendChild(app.view);
+const MAX_TIME = 60;
 
 let json = {
     "trees": {
@@ -37,6 +36,14 @@ let json = {
                 }
             },
             "steps": [
+                {"timestamp": 730, "position": {"x": 9, "y": 9}},
+                {"timestamp": 720, "position": {"x": 8, "y": 9}},
+                {"timestamp": 710, "position": {"x": 7, "y": 9}},
+                {"timestamp": 620, "position": {"x": 7, "y": 1}},
+                {"timestamp": 610, "position": {"x": 6, "y": 1}},
+                {"timestamp": 520, "position": {"x": 6, "y": 9}},
+                {"timestamp": 510, "position": {"x": 5, "y": 9}},
+                {"timestamp": 420, "position": {"x": 5, "y": 1}},
                 {"timestamp": 410, "position": {"x": 4, "y": 1}},
                 {"timestamp": 360, "position": {"x": 4, "y": 6}},
                 {"timestamp": 310, "position": {"x": 4, "y": 6}},
@@ -72,12 +79,14 @@ let json = {
     }
 }
 
+render()
+
 function font(size){
     return {fontFamily : 'Arial', fontSize: size, fill : 'white', align : 'center'};
 }
 
 function createTimer(){
-    let text = new PIXI.Text('00:00', font(TIMER_FONT_SIZE));
+    let text = new PIXI.Text('00', font(TIMER_FONT_SIZE));
     text.x = (app.screen.width / 2) - (text.width / 2);
     text.y = 10;
     app.stage.addChild(text);
@@ -153,12 +162,13 @@ function renderPlayers(players, playerStories, actualTs, delta){
 
 function renderTimer(timer, actualTs){
     let actualTsSeconds = Math.floor(actualTs / 100);
-    let minutes = Math.floor(actualTsSeconds / 60);
-    let seconds = Math.floor(actualTsSeconds % 60);
-    timer.text = minutes.toString().padStart(2, "0") + ":" + seconds.toString().padStart(2, "0");
+    let seconds = Math.max(MAX_TIME - actualTsSeconds, 0);
+    timer.text = seconds.toString().padStart(2, "0");
 }
 
 function render() {
+
+    document.body.appendChild(app.view);
     let actualTs = 0;
     let timer = createTimer();
     // create a new Sprite from an image path
@@ -169,5 +179,3 @@ function render() {
         renderTimer(timer, actualTs);
     });
 }
-
-render()
