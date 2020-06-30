@@ -1,11 +1,26 @@
 const app = new PIXI.Application({ backgroundColor: 0x1099bb });
-const WIDTH_SEGMENT_SIZE = app.screen.width / 10;
-const HEIGHT_SEGMENT_SIZE = app.screen.height / 10;
+const WIDTH_SEGMENT_SIZE = app.screen.width / 23;
+const HEIGHT_SEGMENT_SIZE = app.screen.height / 23;
 const SLOWING_FACTOR = 8;
 const TIMER_FONT_SIZE = 30;
 const MAX_TIME = 60;
 
-let json = {
+ let jsonResponse = undefined;
+
+function loadApi(){
+    const Http = new XMLHttpRequest();
+    const url='http://127.0.0.1:3000/sim/teams21x21/';
+    Http.open("GET", url, true);
+    Http.send(null);
+    Http.onreadystatechange = function () {
+         if (Http.readyState == 4 && (Http.status == 200)) {
+            console.log("Ready");
+            jsonResponse = JSON.parse(Http.responseText);
+        }
+    }
+}
+
+let sample = {
     "trees": {
         "A": {
             "position": {"x": 9, "y": 9},
@@ -89,6 +104,15 @@ function createTimer(){
     let text = new PIXI.Text('00', font(TIMER_FONT_SIZE));
     text.x = (app.screen.width / 2) - (text.width / 2);
     text.y = 10;
+    text.visible = false;
+    app.stage.addChild(text);
+    return text;
+}
+
+function createLoader(){
+    let text = new PIXI.Text('Loading', font(TIMER_FONT_SIZE));
+    text.x = (app.screen.width / 2) - (text.width / 2);
+    text.y = 10;
     app.stage.addChild(text);
     return text;
 }
@@ -109,16 +133,16 @@ function createPlayers(jsonPlayers){
 
 function executeStep(player, step){
     let position = step.position;
-    player.x = position.x * WIDTH_SEGMENT_SIZE;
-    player.y = position.y * HEIGHT_SEGMENT_SIZE;
+    player.x = (position.x + 1) * WIDTH_SEGMENT_SIZE;
+    player.y = (position.y + 1 ) * HEIGHT_SEGMENT_SIZE;
 }
 
 function applyPartialDistance(xOrY, segmentSize, estimatedDelta, fighter, targetStep, actualTs){
     // take distance from next keyframe
-    let distanceToTravel = targetStep.position[xOrY] * segmentSize - fighter[xOrY]
+    let distanceToTravel = (targetStep.position[xOrY] + 1) * segmentSize - fighter[xOrY]
     if (distanceToTravel != 0){
         // take time until next game loop iteration (approx. time since last game loop iteration)
-        let expectedSpeed = distanceToTravel / (targetStep.timestamp * SLOWING_FACTOR - actualTs);
+        let expectedSpeed = distanceToTravel / (parseInt(targetStep.timestamp) * SLOWING_FACTOR - actualTs);
         // move total distance / time
         fighter[xOrY] += expectedSpeed * estimatedDelta;
         return true;
@@ -132,20 +156,22 @@ function renderPlayers(players, playerStories, actualTs, delta){
         let steps = playerStories[fighterId].steps;
         if (steps.length > 0){
             let isStepExecuted = false;
-            let peek = steps[steps.length - 1];
-            while(steps.length > 0 && peek.timestamp * SLOWING_FACTOR < actualTs) {
+            let peek = steps[0];
+
+            while(steps.length > 0 && parseInt(peek.timestamp) * SLOWING_FACTOR < actualTs) {
                 if (player.visible == false){
                     player.visible = true;
                 }
-                steps.pop();
+                steps.shift();
                 executeStep(player, peek);
                 // rotate when moving
                 player.rotation += 0.1 * delta;
                 isStepExecuted = true;
                 if (steps.length > 0){
-                    peek = steps[steps.length - 1];
+                    peek = steps[0];
                 }
             }
+
             // execute partial step
             if (!isStepExecuted && player.visible){
                 let moved = false;
@@ -163,19 +189,32 @@ function renderPlayers(players, playerStories, actualTs, delta){
 function renderTimer(timer, actualTs){
     let actualTsSeconds = Math.floor(actualTs / 100);
     let seconds = Math.max(MAX_TIME - actualTsSeconds, 0);
+    timer.visible = true;
     timer.text = seconds.toString().padStart(2, "0");
 }
 
 function render() {
-
     document.body.appendChild(app.view);
+     loadApi();
+    let loaded = false;
     let actualTs = 0;
-    let timer = createTimer();
+    let timer = undefined;
+    let loader = createLoader();
     // create a new Sprite from an image path
-    let players = createPlayers(json.players);
+    let players = undefined;
     app.ticker.add((delta) => {
-        actualTs += delta;
-        renderPlayers(players, json.players, actualTs, delta);
-        renderTimer(timer, actualTs);
+        if (jsonResponse !== undefined) {
+            if (!loaded) {
+                timer = createTimer();
+                players = createPlayers(jsonResponse.players);
+                console.log(jsonResponse.players)
+                loader.visible = false;
+                loaded = true;
+            } else {
+                actualTs += delta;
+                renderPlayers(players, jsonResponse.players, actualTs, delta);
+                renderTimer(timer, actualTs);
+            }
+        }
     });
 }
